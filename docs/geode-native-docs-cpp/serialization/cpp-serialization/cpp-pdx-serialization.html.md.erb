@@ -1,0 +1,70 @@
+<% set_title(product_name, "PDX Serialization") %>
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<%=vars.product_name%>'s Portable Data eXchange (PDX) is a cross-language data format that can reduce the cost of distributing and serializing your objects.
+
+<%=vars.product_name%> C++ PDX serialization:
+
+- Is <a href="#pdx-ser-portability">interoperable with other languages by <%=vars.product_name%></a> -- no need to program a Java-side implementation
+
+- <a href="#pdx-ser-reduced-deserialization">Reduces
+  deserialization overhead</a> by providing direct field access on servers of serialized data,
+  without full deserialization. Stores data in named fields that you can access individually, to
+  avoid the cost of deserializing the entire data object
+
+- <a href="#pdx-ser-delta-prop">Works with <%=vars.product_name%> delta propagation</a>
+
+For greater control, you can specify individual treatment for domain objects using the `PdxSerializable` interface.
+
+## <a id="pdx-ser-portability"></a>Portability of PDX Serializable Objects
+
+When you create a `PdxSerializable` object, <%=vars.product_name%> stores the object's type
+information in a central registry. The information is passed between peers, between clients and
+servers, and between distributed systems.
+
+When using PDX serialization, clients automatically pass registry information to servers when they store a
+`PdxSerializable` object. Clients can run queries and functions against the data in the servers
+without the servers needing to know anything about the stored objects. One client can store data on
+the server to be retrieved by another client, with the server never needing to know the object
+type. This means you can code your C++ clients to manage data using Java servers without having to
+create Java implementations of your C++ domain objects.
+
+## <a id="pdx-ser-reduced-deserialization"></a>Reduced Deserialization of Serialized Objects
+
+The access methods for `PdxSerializable` objects allow you to examine specific fields of your
+domain object without deserializing the entire object. This can reduce 
+deserialization costs significantly. Client C++ apps can run queries and execute functions against
+the objects in the server caches without deserializing the entire object on the server side. The
+query engine automatically recognizes PDX objects and uses only the fields it needs.
+
+Clients can execute Java functions on server data that only access parts of the domain objects by using `PdxInstance.`
+
+Likewise, peers can access just the fields needed from the serialized object, keeping the object
+stored in the cache in serialized form.
+
+## <a id="pdx-ser-delta-prop"></a>Delta Propagation with PDX Serialization
+
+You can use <%=vars.product_name%> delta propagation with PDX serialization.
+
+## <a id='pdx-ser-details'></a>PDX Serialization Details
+
+See the following sections for details on implementing PDX serialization:
+
+- [Using the PdxSerializable Abstract Class](pdxserializable-interface.html)
+- [PdxSerializable Example](pdx-serializable-examples.html)

@@ -1,0 +1,156 @@
+<% set_title("Using the", product_name, "PDX Autoserializer") %>
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+It's extremely easy for .NET Framework applications to store and retrieve data from Geode. All
+that's required is a single line of code to set the `PdxSerializer` to the .NET Framework client's
+`ReflectionBasedAutoSerializer`:
+
+```csharp
+cache.TypeRegistry.PdxSerializer = new ReflectionBasedAutoSerializer();
+```
+
+(The autoserializer can be registered only in the application code. It cannot be configured declaratively in `cache.xml`.)
+
+After an autoserializer has been registered, all user classes can automatically be stored without needing to implement any
+interfaces. For example, the following `Put` command stores `value`, which is an instance of a user defined class, in
+the region.
+
+```csharp
+region.Put(key, value);
+```
+    
+The .NET Framework client's `ReflectionBasedAutoSerializer` supports the full list of .NET
+Framework primitives and other common built-in types.
+
+Types without a no-arg constructor are not supported by the `ReflectionBasedAutoSerializer`. This
+includes all user defined structs. `System.Data.Datatable` is an example of a system class that is not
+supported due to lack of a no-arg constructor.
+
+## <a id="auto-ser-java-interop"></a>Java Interoperability with .NET Framework Specific Types
+
+Java does not have unsigned data types or exact equivalents of `Guid` and `Decimal`. Care should be
+taken when passing these types between .NET Framework and Java applications using the .NET
+Framework `ReflectionBasedAutoSerializer`. For example, if storing `UInt16` data (that is, 16-bit
+unsigned values), be aware that values greater than `UInt16.MaxValue/2 - 1` will show up as
+negative numbers in Java.
+Using that data in a Java application may have unexpected behavior. If you expect to exceed
+half the range for the given type (`Byte.MaxValue/2`, `UInt16.MaxValue/2`, `UInt32.MaxValue/2`, or
+`UInt64.MaxValue/2`) you should use the next larger type. This obviously breaks down for
+`UInt64`, which has no next larger type. However, if your range exceeds `UIn64.MaxValue/2`, you
+likely have a much more complex set of issues to deal with, such as heavy paging due to such a
+large data set.
+
+## <a id="auto-ser-remote-queries"></a>Remote Queries of .NET Framework Only Types
+
+At this time the .NET Framework Client does not support queries against user classes that have been
+stored on the server using the `ReflectionBasedAutoSerializer`.
+
+When you register the reflection-based serializer, <%=vars.product_name%> uses it to serialize all
+objects that do not implement `IPdxSerializable`. You can customize the
+auto-serialization behavior for your domain objects by adding serialization attributes to your
+object’s fields.
+
+## <a id='pdx-ser-extending-auto'></a>Extending the PDX Autoserializer
+
+For each object you intend to have autoserialized, you can customize the serialization as needed.
+
+**Note:** If you also use PDX serialization in Java for the object, customize your serialization in the same way for both languages.
+
+The following extension methods apply to autoserialization:
+
+-   **WriteTransform**. Controls what field value is written during auto serialization.
+-   **ReadTransform**. Controls what field value is read during auto deserialization.
+-   **GetFieldType**. Defines the specific field names that will be generated during autoserialization.
+-   **IsIdentityField**. Controls which field is marked as the identity field. Identity fields are used when a `PdxInstance` computes its hash code to determine whether it is equal to another object.
+-   **GetFieldType**. Determines the field type that will be used when autoserializing the given field.
+-   **IsFieldIncluded**. Specifies which fields of a class to autoserialize.
+
+To specify an identifier field in your domain object, add the attribute `PdxIdentityField` to the field.
+
+For example:
+
+```csharp
+[PdxIdentityField] private int id;
+```
+
+To exclude a field from serialization, add the .NET Framework attribute `NonSerialized` to the field.
+
+For example:
+
+```csharp
+[NonSerialized] private int myLocalData;
+```
+
+For each domain class <%=vars.product_name%> serializes using the autoserializer, all fields are
+considered for serialization except those defined as `static`, `literal` or `readonly` and those you
+explicitly exclude using the .NET Framework `NonSerialized` attribute.
+
+This example code demonstrates how to extend the autoserializer to customize serialization.
+
+```csharp
+public class AutoSerializerEx : ReflectionBasedAutoSerializer
+{
+   public override object WriteTransform(FieldInfo fi, Type type, object originalValue) {
+      if (fi.FieldType.Equals(Type.GetType("System.Guid"))) {
+        return originalValue.ToString();
+      } else if (fi.FieldType.Equals(Type.GetType("System.Decimal"))) {
+        return originalValue.ToString();
+      } else
+        return base.WriteTransform(fi, type, originalValue);
+    }
+
+    public override object ReadTransform(FieldInfo fi, Type type, object serializeValue) {
+      if (fi.FieldType.Equals(Type.GetType("System.Guid"))) {
+        Guid g = new Guid((string)serializeValue);
+        return g;
+      } else if (fi.FieldType.Equals(Type.GetType("System.Decimal"))) {
+        return Convert.ToDecimal((string)serializeValue);
+      } else
+        return base.ReadTransform(fi, type, serializeValue);
+    }
+
+   public override FieldType GetFieldType(FieldInfo fi, Type type) {
+      if (fi.FieldType.Equals(Type.GetType("System.Guid")) ||
+              fi.FieldType.Equals(Type.GetType("System.Decimal")))
+        return FieldType.STRING;
+      return base.GetFieldType(fi, type);
+   }
+
+   public override bool IsIdentityField(FieldInfo fi, Type type) {
+      if (fi.Name == "_identityField")
+        return true;
+      return base.IsIdentityField(fi, type);
+   }
+
+   public override string GetFieldName(FieldInfo fi, Type type) {
+      if (fi.Name == "_nameChange")
+        return fi.Name + "NewName";
+      return fi.Name;
+    }
+ 
+   public override bool IsFieldIncluded(FieldInfo fi, Type type)
+   {
+      if (fi.Name == "_notInclude")
+        return false;
+      return base.IsFieldIncluded(fi, type);
+    }
+}
+```
+
+

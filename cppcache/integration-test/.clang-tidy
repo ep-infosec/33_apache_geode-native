@@ -1,0 +1,7 @@
+---
+InheritParentConfig: true
+Checks: '-google-readability-function-size'
+...
+
+# google-readability-function-size
+# Some tests have large bodies that cause this rule to fail.

@@ -1,0 +1,144 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#.rst:
+# Find@PRODUCT_NAME_NOSPACE@
+# ---------
+#
+# Find the @PRODUCT_NAME@ headers and library.
+#
+# Imported Targets
+# ^^^^^^^^^^^^^^^^
+#
+# This module defines the following :prop_tgt:`IMPORTED` targets:
+#
+# ``@PRODUCT_NAME_NOSPACE@::cpp``
+# ``@PRODUCT_NAME_NOSPACE@::dotnet``
+#
+# Result Variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+# ``@PRODUCT_NAME_NOSPACE@_FOUND``
+#   true if the @PRODUCT_NAME@ headers and libraries were found.
+#
+# ``@PRODUCT_NAME_NOSPACE@_DOTNET_LIBRARY``
+#   Path to .NET assembly file.
+#
+
+set(_@PRODUCT_NAME_NOSPACE@_ROOT "")
+if(@PRODUCT_NAME_NOSPACE@_ROOT AND IS_DIRECTORY "${@PRODUCT_NAME_NOSPACE@_ROOT}")
+    set(_@PRODUCT_NAME_NOSPACE@_ROOT "${@PRODUCT_NAME_NOSPACE@_ROOT}")
+    set(_@PRODUCT_NAME_NOSPACE@_ROOT_EXPLICIT 1)
+else()
+    set(_ENV_@PRODUCT_NAME_NOSPACE@_ROOT "")
+    if(DEFINED ENV{GEODE_NATIVE_HOME})
+        file(TO_CMAKE_PATH "$ENV{GEODE_NATIVE_HOME}" _ENV_@PRODUCT_NAME_NOSPACE@_ROOT)
+    endif()
+    if(_ENV_@PRODUCT_NAME_NOSPACE@_ROOT AND IS_DIRECTORY "${_ENV_@PRODUCT_NAME_NOSPACE@_ROOT}")
+        set(_@PRODUCT_NAME_NOSPACE@_ROOT "${_ENV_@PRODUCT_NAME_NOSPACE@_ROOT}")
+        set(_@PRODUCT_NAME_NOSPACE@_ROOT_EXPLICIT 0)
+    endif()
+    unset(_ENV_@PRODUCT_NAME_NOSPACE@_ROOT)
+endif()
+
+set(_@PRODUCT_NAME_NOSPACE@_HINTS)
+set(_@PRODUCT_NAME_NOSPACE@_PATHS)
+
+if(_@PRODUCT_NAME_NOSPACE@_ROOT)
+    set(_@PRODUCT_NAME_NOSPACE@_HINTS ${_@PRODUCT_NAME_NOSPACE@_ROOT})
+else()
+    set(_@PRODUCT_NAME_NOSPACE@_PATHS (
+        "/opt/local"
+        "/usr/local"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../../"
+        "C:/program files" ))
+endif()
+
+# Begin - component "cpp"
+set(_@PRODUCT_NAME_NOSPACE@_CPP_NAMES @PRODUCT_LIB_NAME@)
+
+
+find_library(@PRODUCT_NAME_NOSPACE@_CPP_LIBRARY
+    NAMES ${_@PRODUCT_NAME_NOSPACE@_CPP_NAMES}
+    HINTS ${_@PRODUCT_NAME_NOSPACE@_HINTS}
+    PATHS ${_@PRODUCT_NAME_NOSPACE@_PATHS}
+    PATH_SUFFIXES @PRODUCT_LIB_NAME@/lib lib
+)
+
+# Look for the header file.
+find_path(@PRODUCT_NAME_NOSPACE@_CPP_INCLUDE_DIR NAMES geode/CacheFactory.hpp
+    HINTS ${_@PRODUCT_NAME_NOSPACE@_HINTS}
+    PATHS ${_@PRODUCT_NAME_NOSPACE@_PATHS}
+    PATH_SUFFIXES @PRODUCT_LIB_NAME@/include include
+)
+# End - component "cpp"
+
+
+# Begin - component "dotnet"
+set(_@PRODUCT_NAME_NOSPACE@_DOTNET_NAMES @PRODUCT_DLL_NAME@.dll)
+
+find_file(@PRODUCT_NAME_NOSPACE@_DOTNET_LIBRARY
+  NAMES ${_@PRODUCT_NAME_NOSPACE@_DOTNET_NAMES}
+  HINTS ${_@PRODUCT_NAME_NOSPACE@_HINTS}
+  PATHS ${_@PRODUCT_NAME_NOSPACE@_PATHS}
+  PATH_SUFFIXES @PRODUCT_LIB_NAME@/bin bin
+)
+# End - component "dotnet"
+
+
+# TODO find version
+set(@PRODUCT_NAME_NOSPACE@_VERSION_STRING 1.0)
+
+if (@PRODUCT_NAME_NOSPACE@_FIND_COMPONENTS)
+  set(_@PRODUCT_NAME_NOSPACE@_REQUIRED_VARS)
+  foreach (component ${@PRODUCT_NAME_NOSPACE@_FIND_COMPONENTS})
+    if (component STREQUAL "cpp")
+      list(APPEND _@PRODUCT_NAME_NOSPACE@_REQUIRED_VARS @PRODUCT_NAME_NOSPACE@_CPP_LIBRARY @PRODUCT_NAME_NOSPACE@_CPP_INCLUDE_DIR)
+    endif()
+    if (component STREQUAL "dotnet")
+      list(APPEND _@PRODUCT_NAME_NOSPACE@_REQUIRED_VARS @PRODUCT_NAME_NOSPACE@_DOTNET_LIBRARY)
+    endif()
+  endforeach()
+endif()
+
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(@PRODUCT_NAME_NOSPACE@
+                                  REQUIRED_VARS ${_@PRODUCT_NAME_NOSPACE@_REQUIRED_VARS}
+                                  VERSION_VAR @PRODUCT_NAME_NOSPACE@_VERSION_STRING)
+
+# Copy the results to the output variables and target.
+if(@PRODUCT_NAME_NOSPACE@_FOUND)
+  if(NOT TARGET ${@PRODUCT_NAME_NOSPACE@_CPP_TARGET})
+    set(@PRODUCT_NAME_NOSPACE@_CPP_TARGET "@PRODUCT_NAME_NOSPACE@::cpp")
+    add_library(${@PRODUCT_NAME_NOSPACE@_CPP_TARGET} UNKNOWN IMPORTED)
+    set_target_properties(${@PRODUCT_NAME_NOSPACE@_CPP_TARGET} PROPERTIES
+      IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
+      IMPORTED_LOCATION "${@PRODUCT_NAME_NOSPACE@_CPP_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${@PRODUCT_NAME_NOSPACE@_CPP_INCLUDE_DIR}")
+  endif()
+  set(@PRODUCT_NAME_NOSPACE@_DOTNET_TARGET "@PRODUCT_NAME_NOSPACE@::dotnet")
+  if(NOT TARGET ${@PRODUCT_NAME_NOSPACE@_DOTNET_TARGET})
+    add_library(${@PRODUCT_NAME_NOSPACE@_DOTNET_TARGET} UNKNOWN IMPORTED)
+    set_target_properties(${@PRODUCT_NAME_NOSPACE@_DOTNET_TARGET} PROPERTIES
+      IMPORTED_LINK_INTERFACE_LANGUAGES "CSharp"
+      IMPORTED_LOCATION "${@PRODUCT_NAME_NOSPACE@_DOTNET_LIBRARY}")
+  endif()
+else()
+  message(STATUS "FOUND var not set")
+endif()
+
+mark_as_advanced(@PRODUCT_NAME_NOSPACE@_CPP_INCLUDE_DIR @PRODUCT_NAME_NOSPACE@_CPP_LIBRARY @PRODUCT_NAME_NOSPACE@_DOTNET_LIBRARY)

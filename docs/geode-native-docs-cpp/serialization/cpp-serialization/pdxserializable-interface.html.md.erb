@@ -1,0 +1,88 @@
+---
+title:  Using the PdxSerializable Abstract Class
+---
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+When you write objects using PDX serialization, they are distributed to the server tier in PDX serialized form.
+Domain classes need to inherit the `PdxSerializable` abstract class to serialize and de-serialize the object.
+
+When you run queries against the objects on the servers, only the fields you specify are deserialized.
+A domain class should serialize and de-serialize all its member fields in the same order in its `toData` and `fromData` functions.
+
+Use this procedure to program your domain object for PDX serialization using the `PdxSerializable` abstract class.
+
+1.  In your domain class, implement `PdxSerializable`. For example:
+
+    ``` pre
+    class Order : public PdxSerializable {
+    ```
+
+2.  Program the `toData` function to serialize your object as required by your application. (See `markIdentityField` in a later step for an optimization that you can apply to this code sample.)
+
+    ``` cpp
+    void Order::toData(PdxWriter& pdxWriter) const {
+      pdxWriter.writeInt(ORDER_ID_KEY_, order_id_);
+      pdxWriter.writeString(NAME_KEY_, name_);
+      pdxWriter.writeShort(QUANTITY_KEY_, quantity_);
+    }
+    ```
+    
+    If you also use PDX serialization in Java or .NET Framework for the object, serialize the object in the same way for each language. Serialize the same fields in the same order and mark the same identity fields.
+
+3.  Program the `fromData` function to read your data fields from the serialized form into the object's fields.
+
+    ```cpp
+    void Order::fromData(PdxReader& pdxReader) {
+      order_id_ = pdxReader.readInt(ORDER_ID_KEY_);
+      name_ = pdxReader.readString(NAME_KEY_);
+      quantity_ = pdxReader.readShort(QUANTITY_KEY_);
+    }
+    ```
+
+    In your `fromData` implementation, use the same name as you did in `toData` and call the read operations in the same order as you called the write operations in your `toData` implementation.
+
+4.  Optionally, program your domain object's `hashCode` and equality functions. When you do so, you can optimize those functions by specifying the _identity fields_
+    to be used in comparisons. 
+    <br />
+    - Marked identity fields are used to generate the `hashCode` and equality functions of PdxInstance, so the identity fields should themselves either be primitives,
+    or implement `hashCode` and `equals`.
+    <br />
+    - The `markIdentityField` function indicates that the given field name should be included in `hashCode` and equality checks of this object on a server.
+    <br />
+    - Invoke the `markIdentityField` function directly after the identity field's `write*` function.
+    <br />
+    - If no fields are set as identity fields, then all fields will be used in `hashCode` and equality checks, so marking identity fields improves the efficiency
+    of hashing and equality operations. 
+    <br />
+    - It is important that the fields used by your equality function and `hashCode` implementations are the same fields that you mark as identity fields.
+
+    This code sample expands the sample from the description of the `toData` function, above, to illustrate the use of `markIdentityField`:
+
+    ``` cpp
+    void Order::toData(PdxWriter& pdxWriter) const {
+      pdxWriter.writeInt(ORDER_ID_KEY_, order_id_);
+      pdxWriter.markIdentityField(ORDER_ID_KEY_);
+
+      pdxWriter.writeString(NAME_KEY_, name_);
+      pdxWriter.markIdentityField(NAME_KEY_);
+
+      pdxWriter.writeShort(QUANTITY_KEY_, quantity_);
+      pdxWriter.markIdentityField(QUANTITY_KEY_);
+    }
+    ```
